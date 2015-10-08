@@ -1,7 +1,12 @@
 ﻿#coding: utf-8
+'''
+当前版本: 0.1
+'''
 import re
 import urllib2
 import sys
+import os
+import urllib
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -47,6 +52,19 @@ class MaiZi:
         """
         return re.findall('<source src="(.*?)" type=\'video/mp4\'/>', html, re.S)
 
+    # 输出下载进度
+    def Schedule(self, downloadSize, dataSize, remotelyFileSize):
+        '''
+        downloadSize:已经下载的数据块
+        dataSize:数据块的大小
+        remotelyFileSize:远程文件的大小
+       '''
+        per = 100.0 * downloadSize * dataSize / remotelyFileSize
+        if per > 100:
+            per = 100
+
+        print u'当前下载进度:%.2f%%\r' % per,
+
     def run(self):
         # 获取最大页数页数
         maxPage = int(re.findall('<span id="page-pane2">(.*?)</span>', self.GetHtml(self.indexurl), re.S)[0])
@@ -60,14 +78,17 @@ class MaiZi:
                 print title,url
                 # print self.GetVideoList(self.GetHtml(url))
                 self.GetAllVideoUrls(self.GetHtml(url))
+                os.mkdir(title)
                 for VideoUrlin in self.AllVideoUrls:
                     title = VideoUrlin[1]
                     if not re.search('\d', VideoUrlin[0]):
                         url = 'http://www.maiziedu.com/' + videoIndexurl[1]
                     else:
                         url = 'http://www.maiziedu.com/' + VideoUrlin[0]
+                    title = title.replace('&nbsp;','')
                     print title, url
-                    print self.GetVideoList(self.GetHtml(url))
+                    filename = os.path.join(videoIndexurl[0], title + '.mp4')
+                    urllib.urlretrieve(self.GetVideoList(self.GetHtml(url))[0], filename, self.Schedule)
             page += 1
 
 if __name__ == '__main__':
