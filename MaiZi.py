@@ -1,67 +1,75 @@
-# coding: utf-8
-import urllib2
+ï»¿#coding: utf-8
 import re
+import urllib2
 import sys
 reload(sys)
-sys.setdefaultencoding('utf8')
-'''
+sys.setdefaultencoding('utf-8')
 
-download Âó×ÓÑ§Ôº È«²¿ÊÓÆµ
+class MaiZi:
+    def __init__(self):
+        # éº¦å­å­¦é™¢ è§†é¢‘åˆå§‹åœ°å€
+        self.indexurl = 'http://www.maiziedu.com/course/list/?catagory=all&career=all&sort_by=&page='
+        # è§†é¢‘åˆ—è¡¨
+        self.videolist = []
+        # è§†é¢‘ç´¢å¼•åœ°å€
+        self.videoIndexUrls = []
+        # headers
+        self.headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2522.0 Safari/537.36'}
+        # å…¨éƒ¨è§†é¢‘urls
+        self.AllVideoUrls = []
 
-¿ª·¢»·¾³  python 2.7
+    def GetHtml(self, url):
+        """
+        è·å–é¡µé¢æºç 
+        """
+        request = urllib2.Request(url, headers=self.headers)
+        return urllib2.urlopen(request).read().encode('gbk', 'ignore')
 
-'''
+    def Allurls(self, html):
+        """
+        è·å–å½“å‰é¡µé¢urls
+        """
+        urlsinfo = re.findall('<li>\s*<a title="(.*?)"\s*href="(.*?)">', html, re.S)
+        for urlinfo in urlsinfo:
+            self.videoIndexUrls.append(list(urlinfo))
 
-idnexurls = []
+    def GetAllVideoUrls(self, html):
+        """
+        è·å–å½“å‰htmlå†…çš„æ‰€æœ‰è§†é¢‘Url
+        """
+        urls = re.findall('<li .*?>\s*<a href="(.*?)".*?lesson_id=\d*>(.*?)</a>', html, re.S)
+        for url in urls:
+            self.AllVideoUrls.append(list(url))
+
+    def GetVideoList(self, html):
+        """
+        è·å–è§†é¢‘åœ°å€
+        """
+        return re.findall('<source src="(.*?)" type=\'video/mp4\'/>', html, re.S)
+
+    def run(self):
+        # è·å–æœ€å¤§é¡µæ•°é¡µæ•°
+        maxPage = int(re.findall('<span id="page-pane2">(.*?)</span>', self.GetHtml(self.indexurl), re.S)[0])
+        page = 0
+        while page <= maxPage:
+            url = self.indexurl + str(page)
+            self.Allurls(self.GetHtml(url))
+            for videoIndexurl in self.videoIndexUrls:
+                title = videoIndexurl[0]
+                url = 'http://www.maiziedu.com/' + videoIndexurl[1]
+                print title,url
+                # print self.GetVideoList(self.GetHtml(url))
+                self.GetAllVideoUrls(self.GetHtml(url))
+                for VideoUrlin in self.AllVideoUrls:
+                    title = VideoUrlin[1]
+                    if not re.search('\d', VideoUrlin[0]):
+                        url = 'http://www.maiziedu.com/' + videoIndexurl[1]
+                    else:
+                        url = 'http://www.maiziedu.com/' + VideoUrlin[0]
+                    print title, url
+                    print self.GetVideoList(self.GetHtml(url))
+            page += 1
 
 if __name__ == '__main__':
-    ''' Test '''
-    i = 1
-    j = 99
-    while i <= j:
-        try:
-            url = 'http://www.maiziedu.com/course/list/?catagory=all&career=all&sort_by=&page=' + str(i)
-            html = urllib2.urlopen(url).read().encode('gbk', 'ignore')
-            '''
-                <a title="CÓïÑÔÓï·¨¸ÅÊö	" href="/course/qrsqd/2-810">
-                    <p>
-                        <img alt="CÓïÑÔÓï·¨¸ÅÊö	" src="/uploads/course/2015/07/1.2CÓïÑÔÓï·¨¸ÅÊö_lgZo42M.png"></p>
-                    <div class="">
-                        <p class="font14">CÓïÑÔÓï·¨¸ÅÊö	</p><p class="color99">675ÈËÕıÔÚÑ§Ï°</p>
-                    </div>
-                </a>
-            '''
-            urls = re.findall('<li>\s*<a title="(.*?)"\s*href="(.*?)">', html, re.S)
-            if i == 1:
-                j = int(re.findall('¹²<span id="page-pane2">(.*?)</span>Ò³£¬', html, re.S)[0])
-            for url in urls:
-                idnexurls.append((url[0],url[1]))
-            i += 1
-        except urllib2.HTTPError , e:
-                break
-    spdzs = []
-    for url in idnexurls:
-        try:
-            print url[1]
-            html = urllib2.urlopen('http://www.maiziedu.com/'+ url[1]).read().encode('gbk', 'ignore')
-            spurls = re.findall('<li .*?>\s*<a href="(.*?)".*?lesson_id=\d*>(.*?)</a>', html, re.S)
-            for spurl in spurls:
-                if not re.search('\d', spurl[0], re.S):
-                    spurls.append((url[1], ''))
-
-            for spurl in spurls:
-                    if not re.search('\d', spurl[0], re.S):
-                        html = urllib2.urlopen('http://www.maiziedu.com/' + spurls[len(spurls)-1][0]).read().encode('gbk', 'ignore')
-                        s = re.findall('<source src="(.*?)" type=\'video/mp4\'/>', html, re.S)
-                        print s
-                        spdzs.append((s, spurl[1]))
-                        continue
-                    if spurls[len(spurls)-1][0] == spurl[0]:
-                        continue
-                    html = urllib2.urlopen('http://www.maiziedu.com/' + spurl[0]).read().encode('gbk', 'ignore')
-                    s = re.findall('<source src="(.*?)" type=\'video/mp4\'/>', html, re.S)
-                    print s
-                    spdzs.append((s, spurl[1]))
-
-        except urllib2.HTTPError , e:
-            break
+    maizi = MaiZi()
+    maizi.run()
