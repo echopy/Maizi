@@ -7,6 +7,8 @@ import urllib2
 import sys
 import os
 import urllib
+import Mysql
+import MySQLdb
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -22,6 +24,7 @@ class MaiZi:
         self.headers = {'User_Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2522.0 Safari/537.36'}
         # 全部视频urls
         self.AllVideoUrls = []
+        self.mysql = Mysql.VideoDB()
 
     def GetHtml(self, url):
         """
@@ -76,19 +79,21 @@ class MaiZi:
                 title = videoIndexurl[0]
                 url = 'http://www.maiziedu.com/' + videoIndexurl[1]
                 print title,url
-                # print self.GetVideoList(self.GetHtml(url))
                 self.GetAllVideoUrls(self.GetHtml(url))
-                os.mkdir(title)
+                # os.mkdir(title)
                 for VideoUrlin in self.AllVideoUrls:
                     title = VideoUrlin[1]
                     if not re.search('\d', VideoUrlin[0]):
                         url = 'http://www.maiziedu.com/' + videoIndexurl[1]
                     else:
                         url = 'http://www.maiziedu.com/' + VideoUrlin[0]
-                    title = title.replace('&nbsp;','')
-                    print title, url
-                    filename = os.path.join(videoIndexurl[0], title + '.mp4')
-                    urllib.urlretrieve(self.GetVideoList(self.GetHtml(url))[0], filename, self.Schedule)
+                    title = title.replace('&nbsp;','').strip()
+                    video = self.GetVideoList(self.GetHtml(url))[0]
+
+                    self.mysql.insert(title, url, videoIndexurl[0],video)
+
+                    # filename = os.path.join(videoIndexurl[0].strip(), title + '.mp4')
+                    # urllib.urlretrieve(video, filename, self.Schedule)
             page += 1
 
 if __name__ == '__main__':
